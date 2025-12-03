@@ -29,6 +29,14 @@ class PanelControles(QWidget):
         layout.addWidget(self.input_xmin)
         layout.addWidget(self.input_xmax)
 
+        self.input_ymin = QLineEdit()
+        self.input_ymin.setPlaceholderText("ymin")
+        self.input_ymax = QLineEdit()
+        self.input_ymax.setPlaceholderText("ymax")
+
+        layout.addWidget(self.input_ymin)
+        layout.addWidget(self.input_ymax)
+
         self.btn_agregar = QPushButton("Agregar función")
         self.btn_agregar.clicked.connect(self.agregar_funcion)
         layout.addWidget(self.btn_agregar)
@@ -93,35 +101,79 @@ class PanelControles(QWidget):
             self.lbl_resultado.setText("Error: función vacía")
             return
 
-        try:
-            xmin = float(self.input_xmin.text())
-            xmax = float(self.input_xmax.text())
-        except:
-            self.lbl_resultado.setText("Error: límites inválidos")
-            return
+        # ---------------------------------------------
+        # Obtener valores X ingresados por el usuario
+        # ---------------------------------------------
+        xmin_text = self.input_xmin.text().strip()
+        xmax_text = self.input_xmax.text().strip()
+
+        if xmin_text == "":
+            xmin = self.sistema.x_min
+        else:
+            try:
+                xmin = float(xmin_text)
+            except:
+                self.lbl_resultado.setText("Error: xmin no es un número válido")
+                return
+
+        if xmax_text == "":
+            xmax = self.sistema.x_max
+        else:
+            try:
+                xmax = float(xmax_text)
+            except:
+                self.lbl_resultado.setText("Error: xmax no es un número válido")
+                return
+
+        # ---------------------------------------------
+        # Obtener valores Y ingresados por el usuario
+        # ---------------------------------------------
+        ymin_text = self.input_ymin.text().strip()
+        ymax_text = self.input_ymax.text().strip()
+
+        if ymin_text == "":
+            ymin = self.sistema.y_min
+        else:
+            try:
+                ymin = float(ymin_text)
+            except:
+                self.lbl_resultado.setText("Error: ymin no es un número válido")
+                return
+
+        if ymax_text == "":
+            ymax = self.sistema.y_max
+        else:
+            try:
+                ymax = float(ymax_text)
+            except:
+                self.lbl_resultado.setText("Error: ymax no es un número válido")
+                return
 
         # ---------------------------------------------
         # Convertir TEXTO a FUNCIÓN PYTHON
         # ---------------------------------------------
         try:
             import numpy as np
-            funcion = eval(f"lambda x: {texto}", {"np": np, "sin": np.sin, "cos": np.cos, "tan": np.tan})
+            funcion = eval(
+                f"lambda x: {texto}",
+                {"np": np, "sin": np.sin, "cos": np.cos, "tan": np.tan}
+            )
         except Exception as e:
             self.lbl_resultado.setText(f"Error en función: {e}")
             return
 
-        # Guardar en el sistema como: (funcion_callable, texto_original, xmin, xmax)
-        self.sistema.funciones.append((funcion, texto, xmin, xmax))
+        # Guardar la función incluyendo los rangos
+        self.sistema.funciones.append((funcion, texto, xmin, xmax, ymin, ymax))
 
         # ---------------------------------------------
-        # Crear item visual
+        # Añadir a la lista visual
         # ---------------------------------------------
         item = QListWidgetItem()
         widget = QWidget()
         layout = QHBoxLayout()
         layout.setContentsMargins(5, 5, 5, 5)
 
-        label = QLabel(f"{texto}  |  [{xmin}, {xmax}]")
+        label = QLabel(f"{texto}  |  X:[{xmin}, {xmax}]  Y:[{ymin}, {ymax}]")
         btn_edit = QPushButton("✏")
         btn_del = QPushButton("✖")
 
@@ -129,7 +181,6 @@ class PanelControles(QWidget):
         btn_del.setFixedWidth(30)
 
         index = len(self.sistema.funciones) - 1
-
         btn_edit.clicked.connect(lambda _, i=index: self.editar_funcion(i))
         btn_del.clicked.connect(lambda _, i=index: self.eliminar_funcion_directo(i))
 
@@ -143,6 +194,8 @@ class PanelControles(QWidget):
         self.lista.setItemWidget(item, widget)
 
         self.signal_update_plot.emit()
+
+
 
 
     # ----------------------------------------------------------
@@ -168,8 +221,14 @@ class PanelControles(QWidget):
         try:
             x1 = float(x1_text) if x1_text != "" else self.sistema.x_min
             x2 = float(x2_text) if x2_text != "" else self.sistema.x_max
-            y1 = float(y1_text) if y1_text != "" else self.sistema.y_min
-            y2 = float(y2_text) if y2_text != "" else self.sistema.y_max
+            # si están vacíos, dejamos auto-escalado colocando valores iguales
+            if y1_text == "" and y2_text == "":
+                y1 = 0
+                y2 = 0
+            else:
+                y1 = float(y1_text) if y1_text != "" else self.sistema.y_min
+                y2 = float(y2_text) if y2_text != "" else self.sistema.y_max
+
         except:
             self.lbl_resultado.setText("Error en límites del plano")
             return
@@ -186,7 +245,7 @@ class PanelControles(QWidget):
             return
 
         metodo = self.combo_metodo.currentText()
-        func, texto, xmin, xmax = self.sistema.funciones[-1]
+        func, texto, xmin, xmax, ymin, ymax = self.sistema.funciones[-1]
 
         try:
             if metodo == "Simpson 1/3":

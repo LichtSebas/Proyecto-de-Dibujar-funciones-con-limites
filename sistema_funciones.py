@@ -10,9 +10,17 @@ class SistemaFunciones:
         self.y_min = y_min
         self.y_max = y_max
 
-        # Lista → (func_callable, texto, xmin, xmax)
+        # Lista → (func_callable, texto, xmin, xmax, ymin, ymax)
         self.funciones = []
 
+    def evaluar(self, func, xs):
+        try:
+            ys = func(xs)
+            ys = np.array(ys, dtype=float)
+            ys[~np.isfinite(ys)] = np.nan
+            return ys
+        except Exception:
+            return None
     # --------------------------------------------------------
     # Establecer límites del plano
     # --------------------------------------------------------
@@ -27,7 +35,7 @@ class SistemaFunciones:
     # --------------------------------------------------------
     def area_simpson(self, func_texto, a, b, n=1000):
         # Buscar función lambda asociada al texto
-        for func, txt, xmin, xmax in self.funciones:
+        for func, txt, xmin, xmax, ymin, ymax in self.funciones:
             if txt == func_texto:
                 f = func
                 break
@@ -46,7 +54,7 @@ class SistemaFunciones:
     # Trapecios
     # --------------------------------------------------------
     def area_trapecios(self, func_texto, a, b, n=1000):
-        for func, txt, xmin, xmax in self.funciones:
+        for func, txt, xmin, xmax, ymin, ymax in self.funciones:
             if txt == func_texto:
                 f = func
                 break
@@ -65,7 +73,7 @@ class SistemaFunciones:
     # Sólido de revolución
     # --------------------------------------------------------
     def solido_revolucion(self, func_texto, a, b, n=1000):
-        for func, txt, xmin, xmax in self.funciones:
+        for func, txt, xmin, xmax, ymin, ymax in self.funciones:
             if txt == func_texto:
                 f = func
                 break

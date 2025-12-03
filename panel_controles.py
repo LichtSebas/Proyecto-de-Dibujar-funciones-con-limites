@@ -83,6 +83,22 @@ class PanelControles(QWidget):
         self.combo_metodo.addItems(["Simpson 1/3", "Trapecios", "Sólido de revolución"])
         layout.addWidget(self.combo_metodo)
 
+        # Botón para mostrar imagen del sólido
+        self.btn_mostrar_solido = QPushButton("Mostrar sólido")
+        self.btn_mostrar_solido.setEnabled(False)  # inicialmente deshabilitado
+        layout.addWidget(self.btn_mostrar_solido)
+
+        self.btn_mostrar_solido.clicked.connect(self.mostrar_solido)
+        
+        # Combo para seleccionar eje de revolución
+        self.combo_eje = QComboBox()
+        self.combo_eje.addItems(["X", "Y"])
+        self.combo_eje.setEnabled(False)  # inicialmente deshabilitado
+        layout.addWidget(QLabel("Eje de revolución"))
+        layout.addWidget(self.combo_eje)
+
+        # Conectar cambio de método
+        self.combo_metodo.currentTextChanged.connect(self.actualizar_estado_metodo)
         self.btn_calcular = QPushButton("Calcular")
         self.btn_calcular.clicked.connect(self.calcular)
         layout.addWidget(self.btn_calcular)
@@ -289,3 +305,55 @@ class PanelControles(QWidget):
 
         # eliminar el antiguo
         self.eliminar_funcion_directo(index)
+
+    def actualizar_estado_metodo(self, metodo):
+        if metodo == "Sólido de revolución":
+            self.btn_mostrar_solido.setEnabled(True)
+            self.combo_eje.setEnabled(True)
+        else:
+            self.btn_mostrar_solido.setEnabled(False)
+            self.combo_eje.setEnabled(False)
+
+    def mostrar_solido(self):
+        if len(self.sistema.funciones) == 0:
+            self.lbl_resultado.setText("No hay funciones para el sólido")
+            return
+
+        eje = self.combo_eje.currentText()  # "X" o "Y"
+        func, texto, xmin, xmax, ymin, ymax = self.sistema.funciones[-1]
+
+        # Llamas a la función de visualización dentro de la clase
+        self.mostrar_solido_3d(func, xmin, xmax, eje)
+
+        self.lbl_resultado.setText(f"Mostrando sólido de revolución sobre eje {eje}")
+
+    def mostrar_solido_3d(self, func, xmin, xmax, eje='X', n=100):
+        import numpy as np
+        import matplotlib.pyplot as plt
+        from mpl_toolkits.mplot3d import Axes3D
+
+        xs = np.linspace(xmin, xmax, n)
+        ys = func(xs)
+
+        fig = plt.figure()
+        ax = fig.add_subplot(111, projection='3d')
+
+        theta = np.linspace(0, 2*np.pi, n)
+
+        if eje.upper() == 'X':
+            # Revolución sobre X, altura = X
+            X = np.outer(xs, np.ones_like(theta))       # altura
+            Y = np.outer(ys, np.cos(theta))            # radio * cos
+            Z = np.outer(ys, np.sin(theta))            # radio * sin
+        else:
+            # Revolución sobre Y, altura = Z
+            Z = np.outer(xs, np.ones_like(theta))      # altura
+            X = np.outer(ys, np.cos(theta))            # radio * cos
+            Y = np.outer(ys, np.sin(theta))            # radio * sin
+
+        ax.plot_surface(X, Y, Z, color='cyan', alpha=0.7)
+        ax.set_xlabel('X')
+        ax.set_ylabel('Y')
+        ax.set_zlabel('Z')
+        plt.show()
+
